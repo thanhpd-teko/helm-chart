@@ -1,0 +1,127 @@
+{{- range $deploy :=  $.Values.deploys }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ printf "%s-%s" (include "teko.fullname" $) $deploy.name }}
+  labels:
+    app.kubernetes.io/instance: {{ printf "%s-%s" (include "teko.name" $) $deploy.name }}
+    {{- include "teko.labels" $ | nindent 4 }}
+spec:
+  replicas: {{ $deploy.replicasCount | default 0 }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "teko.name" $ }}
+      app.kubernetes.io/instance: {{ printf "%s-%s" (include "teko.name" $) $deploy.name }}
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: {{ $deploy.istioEnabled | default false | quote }}
+        {{- with $deploy.service }}
+        prometheus.io/scrape: {{ $deploy.prometheusScrapeEnabled | default true | quote }}
+        {{- end }}
+        {{- if $.Values.configMap }}
+        checksum/configmap: {{ include (print $.Template.BasePath "/configmap.yaml") $ | sha256sum }}
+        {{- end }}
+        {{- if $.Values.secret }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.sealed.yaml") $ | sha256sum }}
+        {{- end }}
+      labels:
+        app.kubernetes.io/name: {{ include "teko.name" $ }}
+        app.kubernetes.io/instance: {{ include "teko.name" $ }}-{{ $deploy.name }}
+    spec:
+      {{- with $.Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ include "teko.name" $ }}-{{ $deploy.name }}
+          image: {{ printf "%s:%s" $.Values.image.repository $.Values.image.tag | quote }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          {{- include "teko.env" (mergeOverwrite dict $.Values.env ($deploy.env | default dict)) | nindent 10 }}
+          {{- include "teko.cmd" $deploy | nindent 10 }}
+          {{- with $deploy.service }}
+          ports:
+            {{- range $deploy.service.ports }}
+            - name: {{ .name }}
+              containerPort: {{ .containerPort | default 80 }}
+              protocol: TCP
+          {{- end }}
+          {{- end }}
+          {{- include "teko.resources" ($deploy.resources | default ($.Values.resources | default dict)) | nindent 10 }}
+          {{- if or .mountConfigMaps .mountSecrets }}
+          volumeMounts:
+          {{- range .mountConfigMaps }}
+          - name: config-{{ .name }}-volume
+            mountPath: {{ .mountPath }}
+          {{- end }}
+          {{- range .mountSecrets }}
+          - name: secret-{{ .name }}-volume
+            mountPath: {{ .mountPath }}
+          {{- end }}
+          {{- end }}
+      {{- if or .mountConfigMaps .mountSecrets }}
+      volumes:
+      {{- range .mountConfigMaps }}
+      - name: config-{{ .name }}-volume
+        configMap:
+          name: {{ .name }}
+      {{- end }}
+      {{- range .mountSecrets }}
+      - name: secret-{{ .name }}-volume
+        secret:
+          secretName: {{ .name }}
+      {{- end }}
+      {{ end }}
+
+      {{- with $deploy.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $deploy.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $deploy.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+  {{- with $deploy.service }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .name | default (printf "%s-%s" (include "teko.fullname" $) $deploy.name) }}
+  labels:
+    app.kubernetes.io/instance: {{ printf "%s-%s" (include "teko.name" $) $deploy.name }}
+    {{- include "teko.labels" $ | nindent 4 }}
+spec:
+  type: {{ .type }}
+  ports:
+    {{- range $deploy.service.ports }}
+    - port: {{ .port | default 80 }}
+      targetPort: {{ .name }}
+      protocol: TCP
+      name: {{ .name }}
+    {{- end }}
+  selector:
+    app.kubernetes.io/name: {{ include "teko.name" $ }}
+    app.kubernetes.io/instance: {{ printf "%s-%s" (include "teko.name" $) $deploy.name }}
+  {{- end }}
+  {{- with $deploy.autoScale }}
+---
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ printf "%s-%s" (include "teko.fullname" $) $deploy.name }}
+spec:
+  maxReplicas: {{ .max }}
+  minReplicas: {{ .min | default 2 }}
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ printf "%s-%s" (include "teko.fullname" $) $deploy.name }}
+  targetCPUUtilizationPercentage: {{ .cpu | default 60}}
+  {{- end }}
+  {{- end }}

@@ -1,0 +1,74 @@
+image:
+  repository: duythinht/whereami
+  tag: v1
+  pullPolicy: IfNotPresent
+
+imagePullSecrets:
+- name: hub.teko.vn
+- name: asia.gcr.io
+
+#
+#deploys:
+#  - name: svc-1
+#    env:
+#      HI: hello world
+#      TEST: this is 1
+#    mountSecrets:
+#    - name: test
+#      mountPath: /etc/hello
+#    mountConfigMaps:
+#    - name: test
+#      mountPath: /etc/cfg
+#    service:
+#      type: ClusterIP
+#      containerPort: 3000
+#      health:
+#        live: /
+#        ready: /
+#
+#  - name: svc-2
+#    command: ["whereami"]
+#    env:
+#      TEST: this is 2
+#
+#jobs:
+#  - name: job-1
+#    args: ["whereami"]
+#    env:
+#      JOB: job-1
+#  - name: job-2
+#    args: ["whereami"]
+#
+env: {}
+
+#configMap:
+#  hello: hello world
+#  google.json: |
+#    {
+#      "name": "ok"
+#    }
+
+resources:
+  requests:
+    memory: 384Mi
+    cpu: 200m
+  limits:
+    memory: 384Mi
+    cpu: 300m
+
+ingress:
+  enabled: false
+#  annotations:
+#    {}
+#    # kubernetes.io/ingress.class: nginx
+#    # kubernetes.io/tls-acme: "true"
+#  rules:
+#    - host: chart-example.local
+#      paths:
+#        - path: /hello
+#          serviceName: wsm-test-1
+#
+#  tls: []
+#  #  - secretName: chart-example-tls
+#  #    hosts:
+#  #      - chart-example.local
