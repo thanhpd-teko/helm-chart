@@ -3,11 +3,20 @@ entries:
   backend-v2:
   - apiVersion: v1
     appVersion: "1.0"
-    created: "2020-04-12T08:45:43.5178703+07:00"
+    created: "2020-04-12T09:07:18.1049153+07:00"
+    description: A Helm chart for Backend at teko
+    digest: 19ebca66e42b27dd7f2fd06d32922c5e3275ec915fa2986b25cf8d9aa8bcece9
+    name: backend-v2
+    urls:
+    - https://thanhpd-teko.github.io/helm-chart/backend-v2-0.3.1.tgz
+    version: 0.3.1
+  - apiVersion: v1
+    appVersion: "1.0"
+    created: "2020-04-12T09:07:18.1039705+07:00"
     description: A Helm chart for Backend at teko
     digest: 0457b8e53f161704495568d33cdb9969bbeb2102c551f320edc44d638172fde9
     name: backend-v2
     urls:
     - https://thanhpd-teko.github.io/helm-chart/backend-v2-0.3.0.tgz
     version: 0.3.0
-generated: "2020-04-12T08:45:43.5170771+07:00"
+generated: "2020-04-12T09:07:18.1027586+07:00"
