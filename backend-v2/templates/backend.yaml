@@ -46,8 +46,21 @@ spec:
             - name: {{ .name }}
               containerPort: {{ .containerPort | default 80 }}
               protocol: TCP
+            {{- end }}
           {{- end }}
-          {{- end }}
+          {{- with $deploy.health}}
+          livenessProbe:
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 5
+            httpGet:
+              path: {{ .live | default "/health" }}
+              port: {{ .livenessPort | default "http" }}
+          readinessProbe:
+            httpGet:
+              path: {{ (.health | default dict).ready | default "/health" }}
+              port: {{ (.health | default dict).readinessPort | default "http" }}
+          {{ end }}
           {{- include "teko.resources" ($deploy.resources | default ($.Values.resources | default dict)) | nindent 10 }}
           {{- if or .mountConfigMaps .mountSecrets }}
           volumeMounts:
